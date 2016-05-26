@@ -31,6 +31,7 @@ via the Alpha Bank(Greece) online payment system.
 ## Credits
 
 * <antreasgribas@gmail.com>
+* <agelos@smartcode.gr>
 
 ## License
 
