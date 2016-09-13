@@ -5,11 +5,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /*
 Plugin Name: Alpha Bank gateway - WooCommerce Gateway
-Plugin URI: http://www.gateway.com/
+Plugin URI: https://github.com/Antreasgr/AlphaBankGatewayWooCommerce
 Description: Extends WooCommerce by Adding custom gateway
 Version: 1.0
-Author: Antreas gribas
-Author URI: http://www.antreasgribas.gr/
+Author: Antreas Gribas
+Author URI: https://github.com/Antreasgr/
 */
 
 // Include our Gateway Class and register Payment Gateway with WooCommerce
@@ -31,14 +31,3 @@ function gateway_init() {
 		return $methods;
 	}
 }
-
-// Add custom action links
-/*add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), 'spyr_authorizenet_aim_action_links' );
-function spyr_authorizenet_aim_action_links( $links ) {
-	$plugin_links = array(
-		'<a href="' . admin_url( 'admin.php?page=wc-settings&tab=checkout' ) . '">' . __( 'Settings', 'spyr-authorizenet-aim' ) . '</a>',
-	);
-
-	// Merge our new link with the default ones
-	return array_merge( $plugin_links, $links );	
-}*/

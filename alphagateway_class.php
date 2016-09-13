@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @extends     WC_Payment_Gateway
  * @version     1.0.0
  * @package     WooCommerce/Classes/Payment
- * @author      Antreas gribas
+ * @author      Antreas Gribas
  */
 class WC_Gateway_Alpha extends WC_Payment_Gateway {
 
@@ -99,14 +99,14 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 				'title'       => __( 'Description', 'woocommerce' ),
 				'type'        => 'textarea',
 				'description' => __( 'Payment method description that the customer will see on your website.', 'woocommerce' ),
-				'default'     => __( 'Pay up bitch.', 'woocommerce' ),
+				'default'     => __( 'Πληρωμή μέσω Alpha Bank', 'woocommerce' ),
 				'desc_tip'    => true,
 			),
 			'instructions' => array(
 				'title'       => __( 'Instructions', 'woocommerce' ),
 				'type'        => 'textarea',
 				'description' => __( 'Instructions that will be added to the thank you page.', 'woocommerce' ),
-				'default'     => __( 'Pay bitch.', 'woocommerce' ),
+				'default'     => __( 'Πληρωμή μέσω Alpha Bank', 'woocommerce' ),
 				'desc_tip'    => true,
 			),
 			'testmode' => array(
@@ -194,7 +194,7 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
             // jQuery("#shopform1").submit();
         ');
 		
-		$html_form_fields = [];
+		$html_form_fields = array();
 		foreach ($form_data as $key => $value) {
 			$html_form_fields[] = '<input type="hidden" name="'.esc_attr( $key ).'" value="'.esc_attr($value).'" />';
 		}
