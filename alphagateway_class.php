@@ -16,6 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @author      Antreas Gribas
  */
 class WC_Gateway_Alpha extends WC_Payment_Gateway {
+	
 
     /**
      * Constructor for the gateway.
@@ -39,7 +40,9 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 		$this->MerchantId = $this->get_option('MerchantId');
 		$this->Secret = $this->get_option('Secret');
 		
-		$this->AlphaBankUrl = $this->get_option('testmode') === 'yes' ? "https://alpha.test.modirum.com/vpos/shophandlermpi" : "https://www.alphaecommerce.gr/vpos/shophandlermpi";;
+		$this->AlphaBankUrl = $this->get_option('testmode') === 'yes' ? "https://alpha.test.modirum.com/vpos/shophandlermpi" : "https://www.alphaecommerce.gr/vpos/shophandlermpi";
+		
+		$this->InstallmentsActive = $this->get_option('installmentsActive') === 'yes' ? true : false;
 
         // Customer Emails
         add_action( 'woocommerce_email_before_order_table', array( $this, 'email_instructions' ), 10, 3 );
@@ -50,6 +53,9 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 		add_action('woocommerce_thankyou_alpha', array( $this, 'thankyou_page' ) );
 		// Payment listener/API hook
 		add_action('woocommerce_api_wc_gateway_alpha', array($this, 'check_response'));
+
+		// Set the installments array
+		$this->installmentsArray = Array(100 => 4, 200 => 8, 300 => 12);
     }
 	
 		/**
@@ -129,12 +135,18 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
                     'description' => __('Enter Your Alpha Bank Secret Code', 'woocommerce'),
                     'default' => '',
                     'desc_tip' => true
+			),
+			'installmentsActive' => array(
+                    'title' => __('Enable installments?', 'woocommerce'),
+                    'type' => 'checkbox',
+                    'description' => __('Check this to enable installments', 'woocommerce'),
+                    'default' => 'no'
 			)
  	   );
     }
 	
 	
-	protected function get_alpha_args( $order ) {
+	protected function get_alpha_args( $order, $uniqid, $installments ) {
 		// WC_Gateway_Paypal::log( 'Generating payment form for order ' . $order->get_order_number() . '. Notify URL: ' . $this->notify_url );
 		$return = WC()->api_request_url( 'WC_Gateway_Alpha' );
 		$address = array(
@@ -146,17 +158,27 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
                 'country'       => $order->billing_country
 				);
 		
-		return apply_filters( 'woocommerce_alpha_args', 	array(
-				'mid'           => $this->MerchantId,
-				'lang'      => 'el',
-				'orderid'       => uniqid() . 'AlphaBankOrder' . $order->id,
-				'orderDesc' => 'Name: ' . $order->get_formatted_billing_full_name() . ' Address: ' . implode(",", $address) ,
-				'orderAmount'       => wc_format_decimal($order->get_total(), 2, false),
-				'currency'            => 'EUR',
-				'payerEmail' => $order->billing_email,
-				'confirmUrl'        => add_query_arg( 'confirm', $order->id, $return),
-				'cancelUrl' => add_query_arg( 'cancel', $order->id, $return), 
-			), $order );
+		$args = array(
+			'mid'         => $this->MerchantId,
+			'lang'        => 'el',
+			'orderid'     => $uniqid . 'AlphaBankOrder' . $order->id,
+			'orderDesc'   => 'Name: ' . $order->get_formatted_billing_full_name() . ' Address: ' . implode(",", $address) ,
+			'orderAmount' => wc_format_decimal($order->get_total(), 2, false),
+			'currency'    => 'EUR',
+			'payerEmail'  => $order->billing_email
+		);
+		
+		if ($installments > 0) {
+			$args['extInstallmentoffset'] = 0;
+			$args['extInstallmentperiod'] = $installments;
+		};
+		
+		$args = array_merge($args, array(
+			'confirmUrl' => add_query_arg( 'confirm', $order->id, $return),
+			'cancelUrl'  => add_query_arg( 'cancel', $order->id, $return), 
+		));
+				
+		return apply_filters( 'woocommerce_alpha_args', $args , $order );
 	}
 	
 	/**
@@ -165,35 +187,11 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 	public function receipt_page($order_id) {
 		echo '<p>' . __('Thank you - your order is now pending payment. Please click the button below to proceed.', 'woocommerce') . '</p>';
 		$order = wc_get_order( $order_id );
+		$uniqid = uniqid();
 						
-		$form_data = $this->get_alpha_args($order);
-		$string_form_data = array_merge($form_data, array('secret' => $this->Secret));
-		
-		$digest = base64_encode(sha1(implode("", $string_form_data), true));
+		$form_data = $this->get_alpha_args($order, $uniqid, 0);
+		$digest = base64_encode(sha1(implode("", array_merge($form_data, array('secret' => $this->Secret))), true));
 
-		 wc_enqueue_js( '
-            // jQuery("body").block({
-            //         message: "' . esc_js( __( 'Thank you for your order. We are now redirecting you to Alpha bank to make payment.', 'woocommerce' ) ) . '",
-            //         baseZ: 99999,
-            //         overlayCSS:
-            //         {
-            //             background: "#fff",
-            //             opacity: 0.6
-            //         },
-            //         css: {
-            //             padding:        "20px",
-            //             zindex:         "9999999",
-            //             textAlign:      "center",
-            //             color:          "#555",
-            //             border:         "3px solid #aaa",
-            //             backgroundColor:"#fff",
-            //             cursor:         "wait",
-            //             lineHeight:     "24px",
-            //         }
-            //     });
-            // jQuery("#shopform1").submit();
-        ');
-		
 		$html_form_fields = array();
 		foreach ($form_data as $key => $value) {
 			$html_form_fields[] = '<input type="hidden" name="'.esc_attr( $key ).'" value="'.esc_attr($value).'" />';
@@ -205,10 +203,18 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 				echo $field;
 			?>
 			<input type="hidden" name="digest" value="<?php echo $digest ?>"/>
+			
+			<?php	
+				if ($this->InstallmentsActive) {
+					$this->installments(wc_format_decimal($order->get_total(), 2, false), $uniqid, $order); 
+				}
+			?>
+			
 			<input type="submit" class="button alt" id="submit_twocheckout_payment_form" value="<?php echo __( 'Pay via Alpha bank', 'woocommerce' ) ?>" /> 
 			<a class="button cancel" href="<?php echo esc_url( $order->get_cancel_order_url() )?>"><?php echo __( 'Cancel order &amp; restore cart', 'woocommerce' )?></a>
+			
 		</form>		
-	<?php
+		<?php
 		
 		
 		$order->update_status( 'pending', __( 'Sent request to Alpha bank with orderID: ' . $form_data['orderid'] , 'woocommerce' ) );
@@ -223,15 +229,6 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 	public function process_payment( $order_id ) {
 		$order = wc_get_order( $order_id );
 
-		// Mark as processing (payment won't be taken until delivery)
-		// $order->update_status( 'processing', __( 'Payment to be made upon delivery.', 'woocommerce' ) );
-
-		// // Reduce stock levels
-		// $order->reduce_order_stock();
-
-		// // Remove cart
-		// WC()->cart->empty_cart();
-			
 		 return array(
 		 	'result' 	=> 'success',
 		 	'redirect'	=> $order->get_checkout_payment_url( true ) // $this->get_return_url( $order )
@@ -334,8 +331,62 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
      * @param bool $plain_text
      */
 	public function email_instructions( $order, $sent_to_admin, $plain_text = false ) {
-		if ( $this->instructions && ! $sent_to_admin && 'Awesome' === $order->payment_method ) {
+		if ( $this->instructions && ! $sent_to_admin && $this->id === $order->payment_method ) {
 			echo wpautop( wptexturize( $this->instructions ) ) . PHP_EOL;
+		}
+	}
+
+	private function installments($price, $uniqid, $order) {
+		$installments = 0;
+
+		foreach($this->installmentsArray as $priceRange => $numOfInstallments){
+			if ($price > $priceRange) {
+				continue;
+			}
+			else{
+				$installments = $numOfInstallments;
+				break;
+			}
+		}
+
+		$installMentsField = '';
+		if ($installments > 0 && is_int($installments)) {
+			$installMentsField = '<select name="extInstallmentperiod">';
+			
+			for ($i = 0; $i <= $installments; $i++) {
+				
+				$form_data = $this->get_alpha_args($order, $uniqid, $i);
+				$digest = base64_encode(sha1(implode("", array_merge($form_data, array('secret' => $this->Secret))), true));
+
+				$installMentsField .= '<option value="' . $i . '" data-digest="' . $digest . '">' . $i . '</option>';
+			}
+
+			$installMentsField .= '</select>';
+			
+			$installMentsField .= "<input type='hidden' value='0' name='extInstallmentoffset' />";
+
+			echo 	'<fieldset class="wc-payment-form">
+						<p class="form-row form-row-wide">
+							<label for="extInstallmentperiod">' . __( 'Άτοκες Δόσεις ', 'woocommerce' ) . ' </label>
+							' . $installMentsField   
+						. '</p>
+						<div class="clear"></div>
+					</fieldset>';
+
+			wc_enqueue_js('
+				var max = ' . $installments . ';
+				jQuery("#shopform1").submit(function (e) {
+					var i = parseInt(this.extInstallmentperiod.value);
+
+					if (isNaN(i) || i <= 0 || i > max){
+						$(this.extInstallmentperiod).attr("disabled", "disabled");
+						$(this.extInstallmentoffset).attr("disabled", "disabled");
+					}
+					
+					this.digest.value = $(this.extInstallmentperiod).find(":selected").data("digest");
+				});
+			');
+			
 		}
 	}
 }
