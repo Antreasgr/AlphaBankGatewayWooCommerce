@@ -150,22 +150,22 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 		// WC_Gateway_Paypal::log( 'Generating payment form for order ' . $order->get_order_number() . '. Notify URL: ' . $this->notify_url );
 		$return = WC()->api_request_url( 'WC_Gateway_Alpha' );
 		$address = array(
-				'address_1'     => $order->billing_address_1,
-                'address_2'     => $order->billing_address_2,
-                'city'          => $order->billing_city,
-                'state'         => $order->billing_state,
-                'postcode'      => $order->billing_postcode,
-                'country'       => $order->billing_country
+				'address_1'     => ( WC()->version >= '3.0.0' ) ? $order->get_billing_address_1() : $order->billing_address_1,
+                'address_2'     => ( WC()->version >= '3.0.0' ) ? $order->get_billing_address_2() : $order->billing_address_2,
+                'city'          => ( WC()->version >= '3.0.0' ) ? $order->get_billing_city() : $order->billing_city,
+                'state'         => ( WC()->version >= '3.0.0' ) ? $order->get_billing_state() : $order->billing_state,
+                'postcode'      => ( WC()->version >= '3.0.0' ) ? $order->get_billing_postcode() : $order->billing_postcode,
+                'country'       => ( WC()->version >= '3.0.0' ) ? $order->get_billing_country() : $order->billing_country
 				);
 		
 		$args = array(
 			'mid'         => $this->MerchantId,
 			'lang'        => 'el',
-			'orderid'     => $uniqid . 'AlphaBankOrder' . $order->id,
+			'orderid'     => $uniqid . 'AlphaBankOrder' .  ( WC()->version >= '3.0.0' ) ? $order->get_id() : $order->id,
 			'orderDesc'   => 'Name: ' . $order->get_formatted_billing_full_name() . ' Address: ' . implode(",", $address) ,
 			'orderAmount' => wc_format_decimal($order->get_total(), 2, false),
 			'currency'    => 'EUR',
-			'payerEmail'  => $order->billing_email
+			'payerEmail'  => ( WC()->version >= '3.0.0' ) ? $order->get_billing_email() : $order->billing_email
 		);
 		
 		if ($installments > 0) {
@@ -174,8 +174,8 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 		};
 		
 		$args = array_merge($args, array(
-			'confirmUrl' => add_query_arg( 'confirm', $order->id, $return),
-			'cancelUrl'  => add_query_arg( 'cancel', $order->id, $return), 
+			'confirmUrl' => add_query_arg( 'confirm', ( WC()->version >= '3.0.0' ) ? $order->get_id() : $order->id , $return),
+			'cancelUrl'  => add_query_arg( 'cancel', ( WC()->version >= '3.0.0' ) ? $order->get_id() : $order->id , $return), 
 		));
 				
 		return apply_filters( 'woocommerce_alpha_args', $args , $order );
