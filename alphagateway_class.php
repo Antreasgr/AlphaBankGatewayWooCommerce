@@ -238,7 +238,7 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 	/**
 		* Verify a successful Payment!
 	* */
-	public function check_response() {
+	public function check_response() { 
 		$required_response = array(
 			'mid' => '',
 			'orderid' => '',
@@ -279,7 +279,7 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 			else{
 			}
 		}
-		
+
 		$string_form_data = array_merge($required_response, array('secret' => $this->Secret));
 		$digest = base64_encode(sha1(implode("", $string_form_data), true));
 		
@@ -290,7 +290,7 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 		if(isset($_REQUEST['cancel'])){
 			$order = wc_get_order(wc_clean($_REQUEST['cancel']));
 			if (isset($order)){
-				$order->add_order_note('Response received from Alpha Bank with result :' . $required_response['message']);
+				$order->add_order_note('Alpha Bank Payment <strong>' . $required_response['status'] . '</strong>. txId: ' . $required_response['txId'] . '. ' . $required_response['message'] );
 				wp_redirect( $order->get_cancel_order_url_raw());
 				exit();
 			}
@@ -299,12 +299,13 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 			$order = wc_get_order(wc_clean($_REQUEST['confirm']));
 			if (isset($order)){
 				if ($required_response['orderAmount'] == wc_format_decimal($order->get_total(), 2, false)){
-					$order->payment_complete('Payment Complete, response received from Alpha Bank with result :' . $required_response['message']);
+					$order->add_order_note('Alpha Bank Payment <strong>' . $required_response['status'] . '</strong>. txId: ' . $required_response['txId'] . '. payMethod: ' . $required_response['payMethod']. '. paymentRef: ' . $required_response['paymentRef'] . '. ' . $required_response['message'] );
+					$order->payment_complete('Alpha Bank Payment ' . $required_response['status'] . '. txId: ' . $required_response['txId'] );
 					wp_redirect($this->get_return_url( $order ));
 					exit();
 				}
 				else{
-					$order->add_order_note('Payment received with incorrect amount. :' . $required_response['message']);
+					$order->add_order_note('Payment received with incorrect amount. Alpha Bank Payment <strong>' . $required_response['status'] . '</strong>. '. $required_response['message'] );
 				}
 			}
 		}
