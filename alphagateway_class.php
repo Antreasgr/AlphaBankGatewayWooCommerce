@@ -161,7 +161,7 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 		$args = array(
 			'mid'         => $this->MerchantId,
 			'lang'        => 'el',
-			'orderid'     => $uniqid . 'AlphaBankOrder' .  ( WC()->version >= '3.0.0' ) ? $order->get_id() : $order->id,
+			'orderid'     => $uniqid . 'AlphaBankOrder' .  ( ( WC()->version >= '3.0.0' ) ? $order->get_id() : $order->id ),
 			'orderDesc'   => 'Name: ' . $order->get_formatted_billing_full_name() . ' Address: ' . implode(",", $address) ,
 			'orderAmount' => wc_format_decimal($order->get_total(), 2, false),
 			'currency'    => 'EUR',
