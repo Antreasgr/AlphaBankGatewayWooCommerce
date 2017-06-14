@@ -43,6 +43,8 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 		$this->AlphaBankUrl = $this->get_option('testmode') === 'yes' ? "https://alpha.test.modirum.com/vpos/shophandlermpi" : "https://www.alphaecommerce.gr/vpos/shophandlermpi";
 		
 		$this->InstallmentsActive = $this->get_option('installmentsActive') === 'yes' ? true : false;
+		
+		$this->autosubmitPaymentForm = $this->get_option('autosubmitPaymentForm') === 'yes' ? true : false;
 
         // Customer Emails
         add_action( 'woocommerce_email_before_order_table', array( $this, 'email_instructions' ), 10, 3 );
@@ -141,6 +143,13 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
                     'type' => 'checkbox',
                     'description' => __('Check this to enable installments', 'woocommerce'),
                     'default' => 'no'
+			),
+			'autosubmitPaymentForm' => array(
+				'title'       => __( 'Auto-submit payment form', 'woocommerce' ),
+				'label'       => __( 'Enable', 'woocommerce' ),
+				'type'        => 'checkbox',
+				'description' => 'If you check this, buyers will be re-directed to the payment gateway automatically. ',
+				'default'     => 'no'
 			)
  	   );
     }
@@ -198,7 +207,23 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 		}
 		
 		?>
-		<form id="shopform1" name="shopform1" method="POST" action="<?php echo $this->AlphaBankUrl ?>" accept-charset="UTF-8" >
+
+		<?php if ( $this->autosubmitPaymentForm ) :?>
+
+		<script type="text/javascript">
+
+		jQuery(document).ready(function(){
+  
+		    var alphabank_payment_form = document.getElementById('shopform1');
+			alphabank_payment_form.style.visibility="hidden";
+			alphabank_payment_form.submit();
+
+		});
+
+		<?php endif;?>
+
+		</script>
+				<form id="shopform1" name="shopform1" method="POST" action="<?php echo $this->AlphaBankUrl ?>" accept-charset="UTF-8" >
 			<?php foreach($html_form_fields as $field)
 				echo $field;
 			?>
