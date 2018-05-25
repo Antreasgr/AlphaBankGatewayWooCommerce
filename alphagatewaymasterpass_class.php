@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @package     WooCommerce/Classes/Payment
  * @author      Antreas Gribas
  */
-class WC_Gateway_Alpha extends WC_Payment_Gateway {
+class WC_Gateway_Alpha_Masterpass extends WC_Payment_Gateway {
 	
 
     /**
@@ -23,10 +23,10 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
      */
     public function __construct() {
 		//$icon = WC_HTTPS::force_https_url( WC()->plugin_url() . '/includes/gateways/paypal/assets/images/paypal.png' );
-        $this->id                 = 'alpha';
+        $this->id                 = 'alpha_masterpass';
         $this->icon               = apply_filters( 'woocommerce_cod_icon', '' );
-        $this->method_title       = __( 'Alpha Bank', 'woocommerce' );
-        $this->method_description = __( 'Alpha bank web payment system.', 'woocommerce' );
+        $this->method_title       = __( 'Alpha Bank Masterpass', 'woocommerce' );
+        $this->method_description = __( 'Alpha bank Masterpass web payment system.', 'woocommerce' );
         $this->has_fields         = false;
 
         // Load the settings
@@ -54,7 +54,7 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 		add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
 		add_action('woocommerce_thankyou_alpha', array( $this, 'thankyou_page' ) );
 		// Payment listener/API hook
-		add_action('woocommerce_api_wc_gateway_alpha', array($this, 'check_response'));
+		add_action('woocommerce_api_wc_gateway_alpha_masterpass', array($this, 'check_response'));
 
 		// Set the installments array
 		$this->installmentsArray = Array(100 => 4, 200 => 8, 300 => 12);
@@ -90,7 +90,7 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 
     	$this->form_fields = array(
 			'enabled' => array(
-				'title'       => __( 'Enable Alpha Bank', 'woocommerce' ),
+				'title'       => __( 'Enable Alpha Bank Masterpass', 'woocommerce' ),
 				'label'       => __( 'Enabled', 'woocommerce' ),
 				'type'        => 'checkbox',
 				'description' => '',
@@ -100,21 +100,21 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 				'title'       => __( 'Title', 'woocommerce' ),
 				'type'        => 'text',
 				'description' => __( 'Payment method description that the customer will see on your checkout.', 'woocommerce' ),
-				'default'     => __( 'Alpha Bank', 'woocommerce' ),
+				'default'     => __( 'Alpha Bank Masterpass', 'woocommerce' ),
 				'desc_tip'    => true,
 			),
 			'description' => array(
 				'title'       => __( 'Description', 'woocommerce' ),
 				'type'        => 'textarea',
 				'description' => __( 'Payment method description that the customer will see on your website.', 'woocommerce' ),
-				'default'     => __( 'Πληρωμή μέσω Alpha Bank', 'woocommerce' ),
+				'default'     => __( 'Πληρωμή μέσω Alpha Bank Masterpass', 'woocommerce' ),
 				'desc_tip'    => true,
 			),
 			'instructions' => array(
 				'title'       => __( 'Instructions', 'woocommerce' ),
 				'type'        => 'textarea',
 				'description' => __( 'Instructions that will be added to the thank you page.', 'woocommerce' ),
-				'default'     => __( 'Πληρωμή μέσω Alpha Bank', 'woocommerce' ),
+				'default'     => __( 'Πληρωμή μέσω Alpha Bank Masterpass', 'woocommerce' ),
 				'desc_tip'    => true,
 			),
 			'testmode' => array(
@@ -157,7 +157,7 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 	
 	protected function get_alpha_args( $order, $uniqid, $installments ) {
 		// WC_Gateway_Paypal::log( 'Generating payment form for order ' . $order->get_order_number() . '. Notify URL: ' . $this->notify_url );
-		$return = WC()->api_request_url( 'WC_Gateway_Alpha' );
+		$return = WC()->api_request_url( 'WC_Gateway_Alpha_Masterpass' );
 		$address = array(
 				'address_1'     => ( WC()->version >= '3.0.0' ) ? $order->get_billing_address_1() : $order->billing_address_1,
                 'address_2'     => ( WC()->version >= '3.0.0' ) ? $order->get_billing_address_2() : $order->billing_address_2,
@@ -171,7 +171,7 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 		if (substr(get_locale(), 0, 2) == 'en') {
 			$lang = 'en';
 		}
-		
+		$lang = 'en';
 		$args = array(
 			'mid'         => $this->MerchantId,
 			'lang'        => $lang,
@@ -179,7 +179,8 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 			'orderDesc'   => 'Name: ' . $order->get_formatted_billing_full_name() . ' Address: ' . implode(",", $address) ,
 			'orderAmount' => wc_format_decimal($order->get_total(), 2, false),
 			'currency'    => 'EUR',
-			'payerEmail'  => ( WC()->version >= '3.0.0' ) ? $order->get_billing_email() : $order->billing_email
+			'payerEmail'  => ( WC()->version >= '3.0.0' ) ? $order->get_billing_email() : $order->billing_email,
+			'payMethod' => 'auto:MasterPass',
 		);
 		
 		if ($installments > 0) {
@@ -240,7 +241,7 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 				}
 			?>
 			
-			<input type="submit" class="button alt" id="submit_twocheckout_payment_form" value="<?php echo __( 'Pay via Alpha bank', 'woocommerce' ) ?>" /> 
+			<input type="submit" class="button alt" id="submit_twocheckout_payment_form" value="<?php echo __( 'Pay via Alpha bank Masterpass', 'woocommerce' ) ?>" /> 
 			<a class="button cancel" href="<?php echo esc_url( $order->get_cancel_order_url() )?>"><?php echo __( 'Cancel order &amp; restore cart', 'woocommerce' )?></a>
 			
 		</form>		

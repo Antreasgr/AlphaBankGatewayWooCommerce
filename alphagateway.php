@@ -22,12 +22,14 @@ function gateway_init() {
 	
 	// If we made it this far, then include our Gateway Class
 	include_once( 'alphagateway_class.php' );
+	include_once( 'alphagatewaymasterpass_class.php' );
 
 	// Now that we have successfully included our class,
 	// Lets add it too WooCommerce
 	add_filter( 'woocommerce_payment_gateways', 'add_mygateway' );
 	function add_mygateway( $methods ) {
 		$methods[] = 'WC_Gateway_Alpha';
+		$methods[] = 'WC_Gateway_Alpha_Masterpass';
 		return $methods;
 	}
 }
