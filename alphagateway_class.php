@@ -27,7 +27,13 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
         $this->icon               = apply_filters( 'woocommerce_cod_icon', '' );
         $this->method_title       = __( 'Alpha Bank', 'woocommerce' );
         $this->method_description = __( 'Alpha bank web payment system.', 'woocommerce' );
-        $this->has_fields         = false;
+		$this->has_fields         = false;
+		
+		// Define "payment type" radio buttons options field
+		$this->options = array(
+			'type1' => __( 'Πληρωμή μέσω κάρτας', 'woocommerce' ),
+			'type2' => __( 'Πληρωμή μέσω masterpass', 'woocommerce' )
+		);
 
         // Load the settings
         $this->init_form_fields();
@@ -52,6 +58,7 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 		//Actions
 		add_action('woocommerce_receipt_' . $this->id, array( $this, 'receipt_page' ));
 		add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
+		add_action( 'woocommerce_checkout_create_order', array( $this, 'save_order_payment_type_meta_data' ), 10, 2 );
 		add_action('woocommerce_thankyou_alpha', array( $this, 'thankyou_page' ) );
 		// Payment listener/API hook
 		add_action('woocommerce_api_wc_gateway_alpha', array($this, 'check_response'));
@@ -60,11 +67,11 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 		$this->installmentsArray = Array(100 => 4, 200 => 8, 300 => 12);
     }
 	
-		/**
+	/**
 	 * Check if this gateway is enabled.
 	 *
 	 * @return bool
-	 */
+	*/
 	public function is_available() {
 		if ( 'yes' !== $this->enabled ) {
 			return false;
@@ -76,7 +83,7 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 
 		return true;
 	}
-    
+		
 	 /**
      * Initialise Gateway Settings Form Fields.
      */
@@ -171,16 +178,28 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 		if (substr(get_locale(), 0, 2) == 'en') {
 			$lang = 'en';
 		}
-		
-		$args = array(
-			'mid'         => $this->MerchantId,
-			'lang'        => $lang,
-			'orderid'     => $uniqid . 'AlphaBankOrder' .  ( ( WC()->version >= '3.0.0' ) ? $order->get_id() : $order->id ),
-			'orderDesc'   => 'Name: ' . $order->get_formatted_billing_full_name() . ' Address: ' . implode(",", $address) ,
-			'orderAmount' => wc_format_decimal($order->get_total(), 2, false),
-			'currency'    => 'EUR',
-			'payerEmail'  => ( WC()->version >= '3.0.0' ) ? $order->get_billing_email() : $order->billing_email
-		);
+        if ($order->get_meta('_transaction_type')=="type2") {
+            $args = array(
+                'mid'         => $this->MerchantId,
+                'lang'        => $lang,
+                'orderid'     => $uniqid . 'AlphaBankOrder' .  ( ( WC()->version >= '3.0.0' ) ? $order->get_id() : $order->id ),
+                'orderDesc'   => 'Name: ' . $order->get_formatted_billing_full_name() . ' Address: ' . implode(",", $address) ,
+                'orderAmount' => wc_format_decimal($order->get_total(), 2, false),
+                'currency'    => 'EUR',
+                'payerEmail'  => ( WC()->version >= '3.0.0' ) ? $order->get_billing_email() : $order->billing_email,
+                'payMethod'   => 'auto:MasterPass'
+            );
+        } else {
+            $args = array(
+                'mid'         => $this->MerchantId,
+                'lang'        => $lang,
+                'orderid'     => $uniqid . 'AlphaBankOrder' .  ( ( WC()->version >= '3.0.0' ) ? $order->get_id() : $order->id ),
+                'orderDesc'   => 'Name: ' . $order->get_formatted_billing_full_name() . ' Address: ' . implode(",", $address) ,
+                'orderAmount' => wc_format_decimal($order->get_total(), 2, false),
+                'currency'    => 'EUR',
+                'payerEmail'  => ( WC()->version >= '3.0.0' ) ? $order->get_billing_email() : $order->billing_email
+            );
+        }
 		
 		if ($installments > 0) {
 			$args['extInstallmentoffset'] = 0;
@@ -194,6 +213,31 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 				
 		return apply_filters( 'woocommerce_alpha_args', $args , $order );
 	}
+
+        public function payment_fields(){
+            echo '<style>#transaction_type_field  { display:inline-block; margin:0 .8em 0 .4em; font-size: 13px; margin-left: 50px;} #transaction_type_field label:nth-of-type(1):after {  content: "\A"; white-space: pre; }</style>';
+            $option_keys = array_keys($this->options);
+            woocommerce_form_field( 'transaction_type', array(
+                'type'          => 'radio',
+                'class'         => array('transaction_type form-row-wide'),
+
+                'options'       => $this->options,
+            ), reset( $option_keys ) );
+        }
+
+
+	/**
+	 * Save the chosen payment type as order meta data.
+	 *
+	 * @param object $order
+	 * @param array $data
+	 */
+	public function save_order_payment_type_meta_data( $order, $data ) {
+		if ( $data['payment_method'] === $this->id && isset($_POST['transaction_type']) )
+			$order->update_meta_data('_transaction_type', esc_attr($_POST['transaction_type']) );
+	}
+
+
 	
 	/**
 	* Output for the order received page.
