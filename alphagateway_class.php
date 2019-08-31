@@ -179,7 +179,12 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
 			'orderDesc'   => 'Name: ' . $order->get_formatted_billing_full_name() . ' Address: ' . implode(",", $address) ,
 			'orderAmount' => wc_format_decimal($order->get_total(), 2, false),
 			'currency'    => 'EUR',
-			'payerEmail'  => ( WC()->version >= '3.0.0' ) ? $order->get_billing_email() : $order->billing_email
+			'payerEmail'  => ( WC()->version >= '3.0.0' ) ? $order->get_billing_email() : $order->billing_email,
+			'billCountry' => $address['country'],
+			'billState'   => $address['state'],
+			'billZip'     => $address['postcode'],
+			'billCity'    => $address['city'],
+			'billAddress' => $address['address_1']
 		);
 		
 		if ($installments > 0) {
