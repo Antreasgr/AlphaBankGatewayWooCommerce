@@ -167,9 +167,9 @@ class WC_Gateway_Alpha extends WC_Payment_Gateway {
                 'country'       => ( WC()->version >= '3.0.0' ) ? $order->get_billing_country() : $order->billing_country
 				);
 		
-		$lang = 'el';
-		if (substr(get_locale(), 0, 2) == 'en') {
-			$lang = 'en';
+		$lang = 'en';
+		if (substr(get_locale(), 0, 2) == 'el') {
+			$lang = 'el';
 		}
 		
 		$args = array(
